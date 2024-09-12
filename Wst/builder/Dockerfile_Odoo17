@@ -1,0 +1,56 @@
+# Use Debian Bookworm as base image
+FROM debian:bookworm-slim
+
+# Set maintainer label
+LABEL maintainer="odooerpcloud odooerpcloud@gmail.com"
+LABEL version="1.0"
+LABEL description="Custom Docker image for Odoo 17"
+
+# Install dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    python3-dev \
+    ca-certificates \
+    wget \
+    procps \
+    nano \
+    git \
+    python3-pip \
+    python3-venv \
+    build-essential \
+    libxslt-dev \
+    libzip-dev \
+    libldap2-dev \
+    libsasl2-dev \
+    libtiff5-dev \
+    libjpeg62-turbo-dev \
+    libfreetype6-dev \
+    liblcms2-dev \
+    libwebp-dev \
+    libharfbuzz-dev \
+    libfribidi-dev \
+    libxcb1-dev \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set up Odoo user and directory structure
+RUN useradd -m -d /opt/odoo -U -r -s /bin/bash odoo
+USER odoo
+RUN mkdir -p /opt/odoo/extra-addons /opt/odoo/data
+
+# Clone Odoo 17 repository
+RUN git clone https://www.github.com/odoo/odoo --depth 1 --branch 17.0 /opt/odoo/odoo
+
+# Install Python dependencies
+RUN python3 -m venv /opt/odoo/venv
+ENV PATH="/opt/odoo/venv/bin:$PATH"
+RUN pip3 install --no-cache-dir -r /opt/odoo/odoo/requirements.txt
+
+# Copy configuration file
+COPY --chown=odoo:odoo odoo.conf /etc/odoo/
+
+# Set the default command to run Odoo
+CMD ["/opt/odoo/venv/bin/python3", "/opt/odoo/odoo/odoo-bin", "-c", "/etc/odoo/odoo.conf"]
+
+# Expose Odoo port
+EXPOSE 8069
